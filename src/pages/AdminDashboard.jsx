@@ -1,7 +1,7 @@
 // src/pages/AdminDashboard.jsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { getAdminQuizzes, saveQuiz, updateQuiz, deleteQuiz, createRoom, startGame, updateRoom } from '../lib/db';
@@ -19,12 +19,30 @@ const EMPTY_QUIZ = () => ({
 });
 
 export default function AdminDashboard() {
-const [quizzes, setQuizzes] = useState([]);
+  const navigate = useNavigate();
+  const { adminId, setAdminId } = useStore();
+
+  const [quizzes, setQuizzes] = useState([]);
   const [editingQuiz, setEditingQuiz] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
   const [launching, setLaunching] = useState(null);
   const [view, setView] = useState('list');
+
+  const loadQuizzes = async (uid) => {
+    setLoading(true);
+    try {
+      console.log('Loading quizzes for uid:', uid);
+      const qs = await getAdminQuizzes(uid);
+      console.log('Quizzes found:', qs);
+      setQuizzes(qs);
+    } catch (e) {
+      console.error('Quiz load error:', e);
+      toast.error('Failed to load quizzes');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -50,29 +68,6 @@ const [quizzes, setQuizzes] = useState([]);
     );
   }
 
-if (!authChecked) {
-  return (
-    <div className="min-h-screen bg-[#0f0a1e] flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-10 h-10 border-4 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" />
-        <p className="text-white/40 font-semibold text-sm">Restoring session…</p>
-      </div>
-    </div>
-  );
-}
-
-  const loadQuizzes = async (uid) => {
-    setLoading(true);
-    try {
-      const qs = await getAdminQuizzes(uid);
-      setQuizzes(qs);
-    } catch (e) {
-      toast.error('Failed to load quizzes');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSave = async () => {
     if (!editingQuiz.title.trim()) return toast.error('Give your quiz a title');
     if (editingQuiz.questions.length === 0) return toast.error('Add at least one question');
@@ -90,7 +85,7 @@ if (!authChecked) {
       } else {
         const saved = await saveQuiz(adminId, editingQuiz);
         setQuizzes(prev => [saved, ...prev]);
-        toast.success('Quiz saved!');
+        toast.success('Quiz saved! ');
       }
       setView('list');
       setEditingQuiz(null);
@@ -112,19 +107,11 @@ if (!authChecked) {
 
   const handleLaunch = async (quiz) => {
     setLaunching(quiz.id);
-    console.log("Launching quiz:", quiz);
     try {
-      if (!questions || questions.length === 0) {
-        console.error("No questions found in quiz");
-        toast.error("Quiz has no questions!");
-        return;
-      }
-      const room = await createRoom(adminId, auth.currentUser?.email || 'Admin',quiz);
+      const room = await createRoom(adminId, auth.currentUser?.email || 'Admin');
       await startGame(room.code, quiz.questions, quiz.shuffleQuestions, quiz.shuffleOptions);
-      // Store quiz title on room
-      
       await updateRoom(room.code, { quizTitle: quiz.title });
-      toast.success(`Room ${room.code} created! `);
+      toast.success(`Room ${room.code} created! 🚀`);
       navigate(`/admin/room/${room.code}`);
     } catch (e) {
       toast.error('Failed to launch quiz: ' + e.message);
@@ -138,10 +125,14 @@ if (!authChecked) {
     setView('edit');
   };
 
-  const handleLoadSample = () => {
-    setEditingQuiz({ ...EMPTY_QUIZ(), ...SAMPLE_QUIZ });
-    setView('edit');
-    toast.success('Sample quiz loaded!');
+  const handleLoadSample = async () => {
+    try {
+      const saved = await saveQuiz(adminId, { ...EMPTY_QUIZ(), ...SAMPLE_QUIZ });
+      setQuizzes(prev => [saved, ...prev]);
+      toast.success('Sample quiz saved! 🎉');
+    } catch (e) {
+      toast.error('Failed to save sample quiz');
+    }
   };
 
   const handleLogout = async () => {
@@ -154,7 +145,6 @@ if (!authChecked) {
       <div className="fixed inset-0 bg-gradient-to-b from-violet-900/20 to-[#0f0a1e]" />
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-black gradient-text">Admin Dashboard</h1>
@@ -167,10 +157,8 @@ if (!authChecked) {
           </button>
         </div>
 
-        {/* List view */}
         {view === 'list' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            {/* Action buttons */}
             <div className="flex gap-3 mb-6 flex-wrap">
               <button onClick={handleNew} className="btn-primary py-3 px-6 text-base">
                 + New Quiz
@@ -222,7 +210,7 @@ if (!authChecked) {
                         className="glass rounded-xl py-2 px-3 text-red-400 hover:text-red-300
                                    hover:bg-red-500/10 transition-all text-sm font-bold"
                       >
-                        
+                        🗑
                       </button>
                       <motion.button
                         whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
@@ -242,10 +230,8 @@ if (!authChecked) {
           </motion.div>
         )}
 
-        {/* Edit view */}
         {view === 'edit' && editingQuiz && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            {/* Back button */}
             <button
               onClick={() => { setView('list'); setEditingQuiz(null); }}
               className="text-white/40 hover:text-white font-semibold text-sm mb-6 flex items-center gap-1"
@@ -267,7 +253,6 @@ if (!authChecked) {
                 className="input-field text-base"
               />
 
-              {/* Options */}
               <div className="flex gap-6 mt-4">
                 {[
                   { key: 'shuffleQuestions', label: 'Shuffle questions' },
@@ -289,13 +274,11 @@ if (!authChecked) {
               </div>
             </div>
 
-            {/* Question editor */}
             <QuestionEditor
               questions={editingQuiz.questions}
               onChange={qs => setEditingQuiz(q => ({ ...q, questions: qs }))}
             />
 
-            {/* Save button */}
             <motion.button
               whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               onClick={handleSave}

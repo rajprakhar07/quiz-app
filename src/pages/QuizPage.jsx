@@ -24,6 +24,7 @@ export default function QuizPage() {
   const [tabWarnings, setTabWarnings] = useState(0);
 
   const answerLocked    = useRef(false);
+  const answeredRef = useRef(false);
   const currentQRef     = useRef(-1);
   const feedbackTimeout = useRef(null);
 
@@ -59,6 +60,7 @@ export default function QuizPage() {
         setFeedback(null);
         setAnswered(false);
         answerLocked.current = false;
+        answeredRef.current = false;
         clearTimeout(feedbackTimeout.current);
       }
 
@@ -73,6 +75,7 @@ export default function QuizPage() {
   const handleAnswer = useCallback(async (optionIndex) => {
     if (answered || answerLocked.current || !room) return;
     answerLocked.current = true;
+    answeredRef.current = true;
     setSelectedIdx(optionIndex);
     setAnswered(true);
 
@@ -107,15 +110,16 @@ export default function QuizPage() {
     feedbackTimeout.current = setTimeout(() => setFeedback(null), 2500);
   }, [answered, room, code, participant, soundEnabled]);
 
-  const handleTimerExpire = useCallback(() => {
-    if (!answered) {
+const handleTimerExpire = useCallback(() => {
+    if (!answeredRef.current) {
       answerLocked.current = true;
+      answeredRef.current = true;
       setAnswered(true);
       if (soundEnabled) sounds.wrong();
       setFeedback({ isCorrect: false, points: 0, streak: 0 });
       feedbackTimeout.current = setTimeout(() => setFeedback(null), 2500);
     }
-  }, [answered, soundEnabled]);
+  }, [soundEnabled]);
 
   if (!room || room.currentQuestionIndex < 0) return <WaitingScreen />;
 

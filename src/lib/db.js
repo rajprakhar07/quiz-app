@@ -178,18 +178,7 @@ export async function getQuestionAnswers(code, questionIndex) {
 /** Start the game — preload shuffled questions into room doc to avoid repeated reads */
 export async function startGame(code, questions, shuffleQuestions, shuffleOptions) {
   let qs = [...questions];
-  if (shuffleOptions) {
-    qs = qs.map(q => {
-      const correctAnswer = q.options[q.correctIndex]; // save correct answer text
-      const shuffled = [...q.options].sort(() => Math.random() - 0.5);
-      const newCorrectIndex = shuffled.indexOf(correctAnswer); // find new position
-      return {
-        ...q,
-        options: shuffled,
-        correctIndex: newCorrectIndex, // update index to match new position
-      };
-    });
-  }
+ 
   await updateDoc(doc(db, 'rooms', code), {
     questions: qs,
     totalQuestions: qs.length,

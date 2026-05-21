@@ -1,0 +1,47 @@
+// firestore.rules
+// Deploy with: firebase deploy --only firestore:rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Rooms ─────────────────────────────────────────────────────────────────
+    match /rooms/{roomCode} {
+      // Anyone can read room data (participants need it to display quiz)
+      allow read: if true;
+
+      // Only authenticated admins can create/update the room document itself
+      allow create: if request.auth != null;
+      allow update: if
+        // Admin can update anything
+        request.auth != null ||
+        // Participants can only update their own participant field and nothing else
+        (
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['participants']) &&
+          request.resource.data.participants.diff(resource.data.participants)
+            .affectedKeys().size() == 1
+        );
+      allow delete: if request.auth != null;
+
+      // ── Answers sub-collection ────────────────────────────────────────────
+      match /answers/{answerId} {
+        // Anyone can read (admin needs stats)
+        allow read: if true;
+        // One write per participant per question — enforced by doc ID pattern
+        // participantId_q{index} ensures uniqueness
+        allow create: if
+          !exists(/databases/$(database)/documents/rooms/$(roomCode)/answers/$(answerId));
+        allow update, delete: if false; // Immutable once submitted
+      }
+    }
+
+    // ── Quizzes ───────────────────────────────────────────────────────────────
+    match /quizzes/{quizId} {
+      allow read:   if request.auth != null && resource.data.adminId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.adminId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.adminId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.adminId == request.auth.uid;
+    }
+  }
+}

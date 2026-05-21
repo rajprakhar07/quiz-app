@@ -239,7 +239,7 @@ function WaitingScreen() {
         transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
         className="text-5xl"
       >⚡</motion.div>
-      <p className="text-white/50 font-bold">Waiting for next question…</p>
+      <p className="text-white/50 font-bold">Waiting for the host to start… 🚀</p>
     </div>
   );
 }

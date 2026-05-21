@@ -116,7 +116,7 @@ const handleTimerExpire = useCallback(() => {
       answeredRef.current = true;
       setAnswered(true);
       if (soundEnabled) sounds.wrong();
-      setFeedback({ isCorrect: false, points: 0, streak: 0 });
+      setFeedback({ isCorrect: false, points: 0, streak: 0, timedOut: true });
       feedbackTimeout.current = setTimeout(() => setFeedback(null), 2500);
     }
   }, [soundEnabled]);

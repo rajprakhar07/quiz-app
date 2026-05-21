@@ -2,13 +2,13 @@
 import { motion } from 'framer-motion';
 import { formatScore } from '../../lib/utils';
 
-export default function AnswerFeedback({ isCorrect, points, streak }) {
+export default function AnswerFeedback({ isCorrect, points, streak, timedOut = false }) {
   return (
     <motion.div
       initial={{ scale: 0.5, opacity: 0, y: 40 }}
       animate={{ scale: 1,   opacity: 1, y: 0 }}
-      className={`fixed inset-0 z-40 flex flex-col items-center justify-center
-                  ${isCorrect ? 'bg-emerald-600/90' : 'bg-red-600/90'} backdrop-blur-sm`}
+      className={`fixed inset-0 z-40 flex flex-col items-center justify-center backdrop-blur-sm
+                  ${isCorrect ? 'bg-emerald-600/90' : timedOut ? 'bg-orange-600/90' : 'bg-red-600/90'}`}
     >
       <motion.div
         initial={{ scale: 0 }}
@@ -16,7 +16,7 @@ export default function AnswerFeedback({ isCorrect, points, streak }) {
         transition={{ duration: 0.5 }}
         className="text-8xl mb-6"
       >
-        {isCorrect ? '🎉' : '😕'}
+        {isCorrect ? '🎉' : timedOut ? '⏰' : '😕'}
       </motion.div>
 
       <motion.h2
@@ -25,7 +25,7 @@ export default function AnswerFeedback({ isCorrect, points, streak }) {
         transition={{ delay: 0.2 }}
         className="text-5xl font-black text-white mb-4"
       >
-        {isCorrect ? 'Correct!' : 'Wrong!'}
+        {isCorrect ? 'Correct!' : timedOut ? 'Time Out!' : 'Wrong!'}
       </motion.h2>
 
       {isCorrect && (
@@ -44,6 +44,17 @@ export default function AnswerFeedback({ isCorrect, points, streak }) {
             </span>
           )}
         </motion.div>
+      )}
+
+      {timedOut && (
+        <motion.p
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0,  opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="text-white/80 font-bold text-xl"
+        >
+          You ran out of time!
+        </motion.p>
       )}
     </motion.div>
   );

@@ -1,7 +1,7 @@
 // src/pages/AdminRoom.jsx
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import {
@@ -14,31 +14,29 @@ import LeaderboardRow from '../components/leaderboard/LeaderboardRow';
 import TimerBar from '../components/ui/TimerBar';
 import toast from 'react-hot-toast';
 
-
 export default function AdminRoom() {
-  const { code }  = useParams();
-  const navigate  = useNavigate();
- const [room, setRoom] = useState(null);
-const [answerStats, setAnswerStats] = useState(null);
-const [timerKey, setTimerKey] = useState(0);
-const [authChecked, setAuthChecked] = useState(false);
-const autoAdvanceRef = useRef(null);
+  const { code }   = useParams();
+  const navigate   = useNavigate();
+  const [room, setRoom]           = useState(null);
+  const [answerStats, setAnswerStats] = useState(null);
+  const [timerKey, setTimerKey]   = useState(0);
+  const [authChecked, setAuthChecked] = useState(false);
+  const autoAdvanceRef = useRef(null);
 
-useEffect(() => {
-  const unsub = onAuthStateChanged(auth, (user) => {
-    setAuthChecked(true);
-    if (!user) navigate('/admin');
-  });
-  return unsub;
-}, []);
-
-if (!authChecked || !room) return <Loading />;
-
-  // Room subscription
+  // Auth guard
   useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setAuthChecked(true);
+      if (!user) navigate('/admin');
+    });
+    return unsub;
+  }, []);
+
+  // Room subscription — always runs, not blocked by early return
+  useEffect(() => {
+    if (!code) return;
     const unsub = subscribeToRoom(code, (roomData) => {
       setRoom(prev => {
-        // New question started
         if (prev && roomData.currentQuestionIndex !== prev.currentQuestionIndex) {
           setTimerKey(k => k + 1);
           setAnswerStats(null);
@@ -52,10 +50,8 @@ if (!authChecked || !room) return <Loading />;
 
   const handleTimerExpire = async () => {
     if (!room) return;
-    // Fetch answer stats then show leaderboard
     try {
       const answers = await getQuestionAnswers(code, room.currentQuestionIndex);
-      const q = room.questions[room.currentQuestionIndex];
       const stats = {
         total: Object.keys(room.participants).length,
         answered: answers.length,
@@ -64,8 +60,6 @@ if (!authChecked || !room) return <Loading />;
       };
       setAnswerStats(stats);
     } catch {}
-
-    // Auto-advance to leaderboard after 3s
     autoAdvanceRef.current = setTimeout(() => handleNext(), 3000);
   };
 
@@ -73,13 +67,11 @@ if (!authChecked || !room) return <Loading />;
     clearTimeout(autoAdvanceRef.current);
     if (!room) return;
     const nextIdx = room.currentQuestionIndex + 1;
-
     if (nextIdx >= room.totalQuestions) {
       await endGame(code);
       toast.success('Quiz ended! 🏆');
     } else {
       await showLeaderboard(code);
-      // Small delay then advance question
       setTimeout(async () => {
         await nextQuestion(code, nextIdx);
       }, 5000);
@@ -101,12 +93,12 @@ if (!authChecked || !room) return <Loading />;
     navigate('/admin/dashboard');
   };
 
-  
+  // Show loading until both auth is checked AND room is loaded
+  if (!authChecked || !room) return <Loading />;
 
-  const ranked = rankParticipants(room.participants);
-  const isLobby = room.status === 'lobby' || room.status === 'countdown';
-  const isActive = room.status === 'active';
-  const isLeaderboard = room.status === 'leaderboard';
+  const ranked    = rankParticipants(room.participants);
+  const isLobby   = room.status === 'lobby' || room.status === 'countdown';
+  const isActive  = room.status === 'active';
   const isFinished = room.status === 'finished';
   const q = room.questions?.[room.currentQuestionIndex];
 
@@ -143,14 +135,15 @@ if (!authChecked || !room) return <Loading />;
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Left panel */}
           <div className="lg:col-span-2 space-y-4">
-            {/* Lobby state */}
+
+            {/* Lobby */}
             {isLobby && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass rounded-3xl p-6">
                 <div className="text-center mb-6">
                   <p className="text-white/50 font-bold uppercase tracking-wider text-sm mb-2">Room Code</p>
                   <h2 className="text-6xl font-black gradient-text tracking-widest">{code}</h2>
                   <p className="text-white/40 text-sm mt-2 font-semibold">
-                    Players join at <span className="text-white/70">quizblitz.app/join</span>
+                    Share this code with players
                   </p>
                 </div>
                 <ParticipantList participants={room.participants} />
@@ -166,7 +159,7 @@ if (!authChecked || !room) return <Loading />;
             )}
 
             {/* Active question */}
-            {(isActive || isLeaderboard) && q && (
+            {isActive && q && (
               <div className="glass rounded-3xl p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-white/50 font-bold text-sm">
@@ -179,21 +172,20 @@ if (!authChecked || !room) return <Loading />;
                   <p className="text-xl font-black text-white">{q.text}</p>
                 </div>
 
-                {isActive && (
-                  <TimerBar
-                    key={timerKey}
-                    duration={q.timeLimit}
-                    startedAt={room.questionStartedAt}
-                    onExpire={handleTimerExpire}
-                  />
-                )}
+                <TimerBar
+                  key={timerKey}
+                  duration={q.timeLimit}
+                  startedAt={room.questionStartedAt}
+                  onExpire={handleTimerExpire}
+                />
 
-                {/* Answer option labels */}
                 <div className="grid grid-cols-2 gap-2">
                   {q.options.map((opt, i) => (
                     <div key={i}
                       className={`rounded-xl p-3 text-sm font-bold
-                                  ${i === q.correctIndex ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500' : 'glass-dark text-white/70'}`}>
+                        ${i === q.correctIndex
+                          ? 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500'
+                          : 'glass-dark text-white/70'}`}>
                       <span className="opacity-60 mr-1">{['▲', '◆', '●', '■'][i]}</span>
                       {opt}
                       {i === q.correctIndex && <span className="ml-1">✓</span>}
@@ -201,7 +193,6 @@ if (!authChecked || !room) return <Loading />;
                   ))}
                 </div>
 
-                {/* Answer stats */}
                 {answerStats && (
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                     className="glass-dark rounded-2xl p-4 space-y-2">
@@ -224,7 +215,6 @@ if (!authChecked || !room) return <Loading />;
                   </motion.div>
                 )}
 
-                {/* Next button */}
                 <motion.button
                   whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={handleNext}
@@ -270,7 +260,6 @@ if (!authChecked || !room) return <Loading />;
                 </p>
               )}
             </div>
-
             {!isFinished && !isLobby && (
               <button onClick={handleEnd}
                 className="w-full glass rounded-xl py-3 text-red-400 hover:bg-red-500/10
@@ -287,11 +276,11 @@ if (!authChecked || !room) return <Loading />;
 
 function StatusBadge({ status }) {
   const map = {
-    lobby:       { color: 'bg-blue-500/20 text-blue-300',    label: 'Lobby' },
-    countdown:   { color: 'bg-amber-500/20 text-amber-300',  label: 'Countdown' },
+    lobby:       { color: 'bg-blue-500/20 text-blue-300',       label: 'Lobby' },
+    countdown:   { color: 'bg-amber-500/20 text-amber-300',     label: 'Countdown' },
     active:      { color: 'bg-emerald-500/20 text-emerald-300', label: '● Live' },
-    leaderboard: { color: 'bg-violet-500/20 text-violet-300', label: 'Leaderboard' },
-    finished:    { color: 'bg-white/10 text-white/40',        label: 'Finished' },
+    leaderboard: { color: 'bg-violet-500/20 text-violet-300',   label: 'Leaderboard' },
+    finished:    { color: 'bg-white/10 text-white/40',          label: 'Finished' },
   };
   const s = map[status] || map.lobby;
   return (
@@ -304,7 +293,10 @@ function StatusBadge({ status }) {
 function Loading() {
   return (
     <div className="min-h-screen bg-[#0f0a1e] flex items-center justify-center">
-      <div className="w-10 h-10 border-4 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" />
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-10 h-10 border-4 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" />
+        <p className="text-white/40 font-semibold text-sm">Loading room…</p>
+      </div>
     </div>
   );
 }

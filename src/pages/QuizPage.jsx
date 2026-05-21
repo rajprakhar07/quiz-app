@@ -145,6 +145,7 @@ const handleTimerExpire = useCallback(() => {
             isCorrect={feedback.isCorrect}
             points={feedback.points}
             streak={feedback.streak}
+            timedOut={feedback.timedOut}
           />
         )}
       </AnimatePresence>

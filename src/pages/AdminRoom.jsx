@@ -14,21 +14,25 @@ import LeaderboardRow from '../components/leaderboard/LeaderboardRow';
 import TimerBar from '../components/ui/TimerBar';
 import toast from 'react-hot-toast';
 
+
 export default function AdminRoom() {
   const { code }  = useParams();
   const navigate  = useNavigate();
-  const [room, setRoom] = useState(null);
-  const [answerStats, setAnswerStats] = useState(null);
-  const [timerKey, setTimerKey] = useState(0);
-  const autoAdvanceRef = useRef(null);
+ const [room, setRoom] = useState(null);
+const [answerStats, setAnswerStats] = useState(null);
+const [timerKey, setTimerKey] = useState(0);
+const [authChecked, setAuthChecked] = useState(false);
+const autoAdvanceRef = useRef(null);
 
-  // Auth guard
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      if (!user) navigate('/admin');
-    });
-    return unsub;
-  }, []);
+useEffect(() => {
+  const unsub = onAuthStateChanged(auth, (user) => {
+    setAuthChecked(true);
+    if (!user) navigate('/admin');
+  });
+  return unsub;
+}, []);
+
+if (!authChecked || !room) return <Loading />;
 
   // Room subscription
   useEffect(() => {
@@ -97,7 +101,7 @@ export default function AdminRoom() {
     navigate('/admin/dashboard');
   };
 
-  if (!room) return <Loading />;
+  
 
   const ranked = rankParticipants(room.participants);
   const isLobby = room.status === 'lobby' || room.status === 'countdown';

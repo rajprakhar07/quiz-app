@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../lib/firebase';
-import { getAdminQuizzes, saveQuiz, updateQuiz, deleteQuiz, createRoom, startGame } from '../lib/db';
+import { getAdminQuizzes, saveQuiz, updateQuiz, deleteQuiz, createRoom, startGame, updateRoom } from '../lib/db';
 import { useStore } from '../store/useStore';
 import { SAMPLE_QUIZ } from '../lib/sampleData';
 import QuestionEditor from '../components/admin/QuestionEditor';
@@ -19,18 +19,16 @@ const EMPTY_QUIZ = () => ({
 });
 
 export default function AdminDashboard() {
-  const navigate = useNavigate();
-  const { adminId, setAdminId } = useStore();
-
-  const [quizzes, setQuizzes] = useState([]);
+const [quizzes, setQuizzes] = useState([]);
   const [editingQuiz, setEditingQuiz] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [launching, setLaunching] = useState(null); // quizId being launched
-  const [view, setView] = useState('list'); // 'list' | 'edit'
+  const [authChecked, setAuthChecked] = useState(false);
+  const [launching, setLaunching] = useState(null);
+  const [view, setView] = useState('list');
 
-  // Auth guard
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
+      setAuthChecked(true);
       if (user) {
         setAdminId(user.uid);
         loadQuizzes(user.uid);
@@ -40,6 +38,28 @@ export default function AdminDashboard() {
     });
     return unsub;
   }, []);
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-[#0f0a1e] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" />
+          <p className="text-white/40 font-semibold text-sm">Restoring session…</p>
+        </div>
+      </div>
+    );
+  }
+
+if (!authChecked) {
+  return (
+    <div className="min-h-screen bg-[#0f0a1e] flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-10 h-10 border-4 border-violet-500/30 border-t-violet-500 rounded-full animate-spin" />
+        <p className="text-white/40 font-semibold text-sm">Restoring session…</p>
+      </div>
+    </div>
+  );
+}
 
   const loadQuizzes = async (uid) => {
     setLoading(true);
@@ -92,11 +112,17 @@ export default function AdminDashboard() {
 
   const handleLaunch = async (quiz) => {
     setLaunching(quiz.id);
+    console.log("Launching quiz:", quiz);
     try {
+      if (!questions || questions.length === 0) {
+        console.error("No questions found in quiz");
+        toast.error("Quiz has no questions!");
+        return;
+      }
       const room = await createRoom(adminId, auth.currentUser?.email || 'Admin',quiz);
       await startGame(room.code, quiz.questions, quiz.shuffleQuestions, quiz.shuffleOptions);
       // Store quiz title on room
-      const { updateRoom } = await import('../lib/db');
+      
       await updateRoom(room.code, { quizTitle: quiz.title });
       toast.success(`Room ${room.code} created! `);
       navigate(`/admin/room/${room.code}`);
@@ -196,7 +222,7 @@ export default function AdminDashboard() {
                         className="glass rounded-xl py-2 px-3 text-red-400 hover:text-red-300
                                    hover:bg-red-500/10 transition-all text-sm font-bold"
                       >
-                        🗑
+                        
                       </button>
                       <motion.button
                         whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}

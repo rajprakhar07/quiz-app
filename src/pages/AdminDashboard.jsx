@@ -104,16 +104,16 @@ export default function AdminDashboard() {
       toast.error('Failed to delete quiz');
     }
   };
-const handleLaunch = async (quiz) => {
+
+  const handleLaunch = async (quiz) => {
     setLaunching(quiz.id);
     try {
       const room = await createRoom(adminId, auth.currentUser?.email || 'Admin');
-      await startGame(room.code, quiz.questions);
+      await startGame(room.code, quiz.questions, quiz.shuffleQuestions, quiz.shuffleOptions);
       await updateRoom(room.code, { quizTitle: quiz.title });
       toast.success(`Room ${room.code} created! 🚀`);
       navigate(`/admin/room/${room.code}`);
     } catch (e) {
-      console.error('Launch error:', e);
       toast.error('Failed to launch quiz: ' + e.message);
     } finally {
       setLaunching(null);

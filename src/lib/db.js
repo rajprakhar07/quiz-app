@@ -13,21 +13,25 @@ import { generateRoomCode } from './utils';
 // ─── ROOM OPERATIONS ────────────────────────────────────────────────────────
 
 /** Create a new quiz room and return the room object */
-export async function createRoom(adminId, adminName) {
+export async function createRoom(adminId, adminName, quizData = null) {
   const code = generateRoomCode();
   const roomRef = doc(db, 'rooms', code);
   const room = {
-    code,
-    adminId,
-    adminName,
-    status: 'lobby',          // lobby | countdown | active | leaderboard | finished
-    currentQuestionIndex: -1,
-    questionStartedAt: null,
-    participants: {},
-    createdAt: serverTimestamp(),
-    questions: [],            // preloaded at game start
-    totalQuestions: 0,
-  };
+  code,
+  adminId,
+  adminName,
+  status: 'lobby',
+  currentQuestionIndex: -1,
+  questionStartedAt: null,
+  participants: {},
+
+  // 🔥 IMPORTANT FIX
+  questions: quizData?.questions || [],
+  totalQuestions: quizData?.questions?.length || 0,
+  quizTitle: quizData?.title || '',
+
+  createdAt: serverTimestamp(),
+};
   await setDoc(roomRef, room);
   return room;
 }
@@ -66,7 +70,7 @@ export async function deleteRoom(code) {
 export async function saveQuiz(adminId, quizData) {
   try {
     console.log("QUIZ DATA BEFORE SAVE:", quizData);
-    console.log("🔥 SAVE QUIZ REAL DATA:", quizData);
+    console.log(" SAVE QUIZ REAL DATA:", quizData);
 
     const quizRef = doc(collection(db, 'quizzes'));
 
@@ -78,11 +82,11 @@ export async function saveQuiz(adminId, quizData) {
 
     await setDoc(quizRef, quiz);
 
-    console.log("✅ REAL QUIZ SAVED:", quizRef.id);
+    console.log("REAL QUIZ SAVED:", quizRef.id);
 
     return { id: quizRef.id, ...quiz };
   } catch (error) {
-    console.error("❌ SAVE ERROR:", error);
+    console.error("SAVE ERROR:", error);
   }
 }
 

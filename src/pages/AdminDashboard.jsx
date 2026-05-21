@@ -66,11 +66,11 @@ export default function AdminDashboard() {
       if (editingQuiz.id) {
         await updateQuiz(editingQuiz.id, editingQuiz);
         setQuizzes(prev => prev.map(q => q.id === editingQuiz.id ? editingQuiz : q));
-        toast.success('Quiz updated! ✅');
+        toast.success('Quiz updated!');
       } else {
         const saved = await saveQuiz(adminId, editingQuiz);
         setQuizzes(prev => [saved, ...prev]);
-        toast.success('Quiz saved! 🎉');
+        toast.success('Quiz saved!');
       }
       setView('list');
       setEditingQuiz(null);
@@ -93,12 +93,12 @@ export default function AdminDashboard() {
   const handleLaunch = async (quiz) => {
     setLaunching(quiz.id);
     try {
-      const room = await createRoom(adminId, auth.currentUser?.email || 'Admin');
+      const room = await createRoom(adminId, auth.currentUser?.email || 'Admin',quiz);
       await startGame(room.code, quiz.questions, quiz.shuffleQuestions, quiz.shuffleOptions);
       // Store quiz title on room
       const { updateRoom } = await import('../lib/db');
       await updateRoom(room.code, { quizTitle: quiz.title });
-      toast.success(`Room ${room.code} created! 🚀`);
+      toast.success(`Room ${room.code} created! `);
       navigate(`/admin/room/${room.code}`);
     } catch (e) {
       toast.error('Failed to launch quiz: ' + e.message);

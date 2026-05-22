@@ -9,11 +9,9 @@ export function generateRoomCode() {
 /** Calculate points based on speed */
 export function calculatePoints(timeLimitSeconds, elapsedSeconds) {
   if (elapsedSeconds <= 0) return 1000;
+  if (elapsedSeconds >= timeLimitSeconds) return 100;
   const ratio = elapsedSeconds / timeLimitSeconds;
-  if (ratio <= 0.2)  return 1000;
-  if (ratio <= 0.5)  return 700;
-  if (ratio <= 0.75) return 400;
-  return 200;
+  return Math.round(100 + 900 * (1 - ratio));
 }
 
 /** Sort participants by score descending */

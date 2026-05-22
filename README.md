@@ -60,95 +60,38 @@ quizblitz/
 
 ## 🔧 Local Setup
 
-### 1. Clone and install dependencies
-
 ```bash
 git clone https://github.com/yourname/quizblitz.git
 cd kahoot-clone
 npm install
-```
-
-### 2. Create a Firebase project
-
-1. Go to [console.firebase.google.com](https://console.firebase.google.com)
-2. Click **Add project** → name it (e.g. `quizblitz`)
-3. Disable Google Analytics (optional) → **Create project**
-
-### 3. Enable Firebase services
-
-**Firestore Database:**
-
-- Sidebar → Build → Firestore Database → **Create database**
-- Choose **Production mode** → pick your region → **Done**
-
-**Authentication:**
-
-- Sidebar → Build → Authentication → **Get started**
-- Sign-in method → **Email/Password** → Enable → **Save**
-
-### 4. Register a Web App
-
-- Project Settings (⚙️) → Your apps → **</>** (Web)
-- Name it `quizblitz-web` → **Register app**
-- Copy the `firebaseConfig` values
-
-### 5. Set up environment variables
-
-```bash
 cp .env.example .env.local
 ```
 
-Edit `.env.local` with your Firebase values:
+Fill in `.env.local` with your Firebase project values (get from Firebase Console → Project Settings → Your Apps).
 
 ```env
-VITE_FIREBASE_API_KEY=AIzaSy...
-VITE_FIREBASE_AUTH_DOMAIN=quizblitz-xxxxx.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=quizblitz-xxxxx
-VITE_FIREBASE_STORAGE_BUCKET=quizblitz-xxxxx.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
-VITE_FIREBASE_APP_ID=1:123456789:web:abc123
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
 ```
 
-### 6. Deploy Firestore rules and indexes
-
-```bash
-npm install -g firebase-tools
-firebase login
-firebase use --add   # select your project
-firebase deploy --only firestore
-```
-
-### 7. Run the dev server
+Enable **Firestore** and **Email/Password Auth** in your Firebase Console, then run:
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173)
-
 ---
 
 ## 🌐 Deploy to Vercel
 
-### Option A: Vercel CLI
-
-```bash
-npm install -g vercel
-vercel
-# Follow the prompts
-```
-
-Add environment variables when prompted (or in Vercel dashboard → Settings → Environment Variables).
-
-### Option B: GitHub + Vercel (recommended)
-
-1. Push your code to GitHub
-2. Go to [vercel.com](https://vercel.com) → **New Project**
-3. Import your GitHub repo
-4. Add all `VITE_FIREBASE_*` environment variables
-5. Click **Deploy**
-
-Vercel auto-detects Vite. The `vercel.json` handles SPA routing.
+1. Push code to GitHub
+2. Import repo at [vercel.com](https://vercel.com)
+3. Add all `VITE_FIREBASE_*` environment variables
+4. Click **Deploy**
 
 ---
 

@@ -55,14 +55,29 @@ export default function QuizPage() {
 
       // New question started → reset state
       if (qIdx !== currentQRef.current && qIdx >= 0) {
-        currentQRef.current = qIdx;
-        setSelectedIdx(null);
-        setFeedback(null);
-        setAnswered(false);
-        answerLocked.current = false;
-        answeredRef.current = false;
-        clearTimeout(feedbackTimeout.current);
-      }
+  currentQRef.current = qIdx;
+  setSelectedIdx(null);
+  setFeedback(null);
+  clearTimeout(feedbackTimeout.current);
+
+  // Check if player already answered this question
+  const existingAnswer = roomData.participants?.[participant?.id]?.answers?.[`q${qIdx}`];
+  if (existingAnswer) {
+    // Already answered — lock and show previous result
+    setAnswered(true);
+    answerLocked.current = true;
+    answeredRef.current = true;
+    setSelectedIdx(existingAnswer.optionIndex);
+  } else {
+    // Not answered yet — check if timer expired
+    const elapsed = (Date.now() - roomData.questionStartedAt) / 1000;
+    const question = roomData.questions[qIdx];
+    const timerExpired = elapsed >= question.timeLimit;
+    setAnswered(timerExpired);
+    answerLocked.current = timerExpired;
+    answeredRef.current = timerExpired;
+  }
+}
 
       if (roomData.status === 'countdown')   setShowCountdown(true);
       if (roomData.status === 'leaderboard') navigate(`/leaderboard/${code}`);

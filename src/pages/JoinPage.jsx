@@ -17,29 +17,45 @@ export default function JoinPage() {
   const [loading, setLoading] = useState(false);
 
   const handleJoin = async (e) => {
-    e.preventDefault();
-    const trimName = name.trim();
-    const trimCode = code.trim().toUpperCase();
+  e.preventDefault();
+  const trimName = name.trim();
+  const trimCode = code.trim().toUpperCase();
 
-    if (!trimName) return toast.error('Please enter your name');
-    if (trimName.length < 2) return toast.error('Name must be at least 2 characters');
-    if (!trimCode || trimCode.length !== 6) return toast.error('Enter a valid 6-character room code');
+  if (!trimName) return toast.error('Please enter your name');
+  if (trimName.length < 2) return toast.error('Name must be at least 2 characters');
+  if (!trimCode || trimCode.length !== 6) return toast.error('Enter a valid 6-character room code');
 
-    setLoading(true);
-    try {
-      const participant = { id: uuidv4(), name: trimName };
-      await joinRoom(trimCode, participant);
-      setParticipant(participant);
+  // Check if this device already joined a room
+  const existingSession = localStorage.getItem('quizblitz_session');
+  if (existingSession) {
+    const session = JSON.parse(existingSession);
+    if (session.roomCode === trimCode) {
+      // Restore existing session instead of creating new one
+      setParticipant(session.participant);
       setCurrentRoomCode(trimCode);
-      if (soundEnabled) sounds.join();
-      toast.success(`Welcome, ${trimName}! 🎉`);
+      toast.success(`Welcome back, ${session.participant.name}! 🎉`);
       navigate(`/lobby/${trimCode}`);
-    } catch (err) {
-      toast.error(err.message || 'Failed to join room');
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
+  }
+
+  setLoading(true);
+  try {
+    const participant = { id: uuidv4(), name: trimName };
+    await joinRoom(trimCode, participant);
+    setParticipant(participant);
+    setCurrentRoomCode(trimCode);
+    // Save session to localStorage
+    localStorage.setItem('quizblitz_session', JSON.stringify({ roomCode: trimCode, participant }));
+    if (soundEnabled) sounds.join();
+    toast.success(`Welcome, ${trimName}! 🎉`);
+    navigate(`/lobby/${trimCode}`);
+  } catch (err) {
+    toast.error(err.message || 'Failed to join room');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative">

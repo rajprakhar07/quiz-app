@@ -39,8 +39,9 @@ export default function ResultsPage() {
   const me     = ranked.find(p => p.id === participant?.id);
   const winner = ranked[0];
 
-  const handleLeave = () => {
+ const handleLeave = () => {
     clearSession();
+    localStorage.removeItem('quizblitz_session');
     navigate('/');
   };
 

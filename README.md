@@ -1,6 +1,6 @@
 # ⚡ QuizBlitz — Live Quiz Platform
 
-A real-time, Kahoot-inspired quiz platform built for college events and online competitions. Supports ~100 concurrent users on the free Firebase + Vercel tier.
+A real-time, Kahoot-inspired quiz platform built for college events and online competitions. Supports 500+ concurrent users on free Firebase + Vercel tier.
 
 ---
 
@@ -18,8 +18,6 @@ A real-time, Kahoot-inspired quiz platform built for college events and online c
 ---
 
 ## 📁 Folder Structure
-
-```
 quizblitz/
 ├── src/
 │   ├── components/
@@ -54,7 +52,6 @@ quizblitz/
 ├── vercel.json
 ├── .env.example
 └── README.md
-```
 
 ---
 
@@ -64,7 +61,7 @@ quizblitz/
 
 ```bash
 git clone https://github.com/yourname/quizblitz.git
-cd quizblitz
+cd kahoot-clone
 npm install
 ```
 
@@ -107,12 +104,16 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
 VITE_FIREBASE_APP_ID=1:123456789:web:abc123
 ```
 
-### 6. Deploy Firestore rules and indexes
+### 6. Create Firestore Index
+
+Run the app once and check browser console. If you see a Firebase index error, click the link in the error to auto-create the index. Wait 2-3 minutes for it to build.
+
+Or deploy manually:
 
 ```bash
 npm install -g firebase-tools
 firebase login
-firebase use --add   # select your project
+firebase use --add
 firebase deploy --only firestore
 ```
 
@@ -133,10 +134,7 @@ Open [http://localhost:5173](http://localhost:5173)
 ```bash
 npm install -g vercel
 vercel
-# Follow the prompts
 ```
-
-Add environment variables when prompted (or in Vercel dashboard → Settings → Environment Variables).
 
 ### Option B: GitHub + Vercel (recommended)
 
@@ -156,58 +154,52 @@ Vercel auto-detects Vite. The `vercel.json` handles SPA routing.
 
 1. Go to `/admin` → Register/Sign in
 2. Click **New Quiz** or **Load Sample**
-3. Add questions, set time limits, toggle shuffle
+3. Add questions and set time limits (minimum 15 seconds recommended for 500 players)
 4. Click **Save Quiz**
-5. Click **🚀 Launch** → A live room is created with a 6-character code
+5. Click **🚀 Launch** → room created with 6-character code
 6. Share the room code with players
 7. Click **Start Quiz** once players have joined
-8. Click **Next Question →** to advance (auto-advances after timer)
+8. Click **Next Question →** to advance
 9. Download results CSV when done
 
 ### As a Player
 
-1. Go to the homepage or `/join`
+1. Go to homepage or `/join`
 2. Enter your name and the room code
 3. Wait in the lobby for the host to start
 4. Tap an answer — faster correct answers = more points!
 5. See the leaderboard after each question
-6. View final results and confetti on the results screen
+6. View final results and confetti on results screen
 
 ---
 
 ## 📊 Firestore Data Schema
-
-```
 rooms/{roomCode}
-  ├── code: string
-  ├── adminId: string
-  ├── adminName: string
-  ├── status: "lobby" | "countdown" | "active" | "leaderboard" | "finished"
-  ├── currentQuestionIndex: number
-  ├── questionStartedAt: number (ms timestamp)
-  ├── totalQuestions: number
-  ├── quizTitle: string
-  ├── questions: Question[]        ← preloaded at start, no per-question reads
-  ├── participants: {
-  │     [participantId]: {
-  │       id, name, score, streak,
-  │       joinedAt, answers: { q0: {...}, q1: {...} }
-  │     }
-  │   }
-  └── answers/{participantId_q{index}}   ← immutable, one doc per answer
-        ├── participantId, questionIndex
-        ├── optionIndex, isCorrect
-        ├── points, elapsed
-        └── submittedAt
-
+├── code: string
+├── adminId: string
+├── adminName: string
+├── status: "lobby" | "countdown" | "active" | "leaderboard" | "finished"
+├── currentQuestionIndex: number
+├── questionStartedAt: number (ms timestamp)
+├── totalQuestions: number
+├── quizTitle: string
+├── questions: Question[]
+├── participants: {
+│     [participantId]: {
+│       id, name, score, streak,
+│       joinedAt, answers: { q0: {...}, q1: {...} }
+│     }
+│   }
+└── answers/{participantId_q{index}}
+├── participantId, questionIndex
+├── optionIndex, isCorrect
+├── points, elapsed
+└── submittedAt
 quizzes/{quizId}
-  ├── adminId, title, description
-  ├── shuffleQuestions, shuffleOptions
-  └── questions: Question[]
-
+├── adminId, title, description
+└── questions: Question[]
 Question shape:
-  { id, text, options: string[4], correctIndex: 0-3, timeLimit: number }
-```
+{ id, text, options: string[4], correctIndex: 0-3, timeLimit: number }
 
 ---
 
@@ -218,65 +210,79 @@ Question shape:
 | No per-second DB writes | Client-side timer; only 1 write on answer submit |
 | Questions preloaded | All questions embedded in room doc at game start |
 | One answer write per user per question | Enforced by Firestore doc ID + rules |
-| Real-time via onSnapshot | Single listener per participant, not polling |
-| Minimal reads | Room doc + 1 answers query per question (admin only) |
-| Zustand persistence | User session survives page refresh |
+| Real-time via onSnapshot | Single listener per participant |
+| No shuffle option issues | Options order fixed for all players |
+| Zustand persistence | Session survives page refresh |
+| Duplicate join prevention | localStorage session check |
+| Rejoin after refresh | Participant restored from localStorage |
 
-**Free tier estimate for 100 players, 10 questions:**
-- Reads: ~1000 (initial room reads) + ~100/min (onSnapshot updates) ≈ well within 50k/day
-- Writes: ~1000 answer docs + ~200 score updates ≈ well within 20k/day
-
----
-
-## 🎵 Sound Effects
-
-Built with the Web Audio API — no external audio files required. Sounds include:
-- Join chime (when player enters lobby)
-- Correct answer fanfare
-- Wrong answer buzz
-- Countdown beeps
-- Timer warning
-- Victory melody
-
-Toggle sounds via the Zustand store (`soundEnabled`).
-
----
-
-## 🔒 Anti-Cheat Features
-
-- **Tab-switch detection**: 3 warnings shown; further switches are logged
-- **Answer lock**: Once submitted, the button state is locked immediately
-- **Timer lock**: Answers locked after timer expires (client-side)
-- **Duplicate prevention**: DB layer ignores second write for same user+question
-- **Username uniqueness**: Enforced on join; duplicate names rejected
+**Free tier estimate for 500 players, 15 questions:**
+- Reads: ~30,000 out of 50,000 daily limit ✅
+- Writes: ~8,000 out of 20,000 daily limit ✅
+- Connections: 500 out of 1,000,000 limit ✅
 
 ---
 
 ## 🎨 Scoring Formula
 
-| Answer speed (% of time used) | Points |
+Linear time-based scoring — almost impossible to tie:
+Points = 100 + 900 × (1 - elapsed/timeLimit)
+
+| Answer time | Points (15s timer) |
 |---|---|
-| ≤ 20% of time | 1000 pts |
-| ≤ 50% of time | 700 pts |
-| ≤ 75% of time | 400 pts |
-| > 75% of time | 200 pts |
+| 1 second | ~940 pts |
+| 5 seconds | ~700 pts |
+| 10 seconds | ~400 pts |
+| Last second | ~100 pts |
 | Wrong / no answer | 0 pts |
+
+---
+
+## 🔒 Anti-Cheat Features
+
+- **Tab-switch detection** — 3 warnings shown during quiz
+- **Answer lock** — buttons disabled immediately after answering
+- **Timer lock** — answers locked when timer expires
+- **Duplicate prevention** — Firestore blocks second submission per question
+- **Username uniqueness** — duplicate names rejected per room
+- **Device session lock** — same device cannot join same room twice via localStorage
+
+---
+
+## 🎵 Sound Effects
+
+Built with Web Audio API — no external files required:
+- Join chime
+- Correct answer fanfare
+- Wrong answer buzz
+- Timeout sound
+- Countdown beeps
+- Victory melody
+
+---
+
+## ⚠️ Known Behaviors
+
+- **Option shuffle disabled** — all players see options in same order to ensure correct answer detection works properly
+- **Question shuffle** — can be enabled safely, does not affect scoring
+- **Score delay** — at 500 players, scores may update 1-2 seconds late (harmless, no data loss)
+- **Rejoin works** — refreshing during quiz restores session automatically
+
+---
+
+## 🛠️ Customization
+
+- **Add questions**: Edit `src/lib/sampleData.js`
+- **Change colors**: Edit Tailwind config + `OPTION_STYLES` in `sampleData.js`
+- **Adjust scoring**: Edit `calculatePoints()` in `src/lib/utils.js`
+- **Timer options**: Edit the `<select>` in `QuestionEditor.jsx`
+- **Custom sounds**: Replace functions in `src/lib/sounds.js`
 
 ---
 
 ## 📱 Browser Support
 
-Chrome, Firefox, Safari, Edge — all modern browsers. Mobile responsive via Tailwind breakpoints.
-
----
-
-## 🛠️ Customization Tips
-
-- **Add more questions**: Edit `src/lib/sampleData.js`
-- **Change color scheme**: Edit Tailwind config + `OPTION_STYLES` in `sampleData.js`
-- **Adjust scoring**: Edit `calculatePoints()` in `src/lib/utils.js`
-- **Increase timer options**: Edit the `<select>` in `QuestionEditor.jsx`
-- **Custom sounds**: Replace functions in `src/lib/sounds.js`
+Chrome, Firefox, Safari, Edge — all modern browsers. Fully mobile responsive.
 
 ---
 

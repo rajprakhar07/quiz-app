@@ -245,3 +245,4 @@ Chrome, Firefox, Safari, Edge — all modern browsers. Fully mobile responsive.
 ## 📄 License
 
 MIT — free to use for college events, hackathons, and competitions.
+trigger

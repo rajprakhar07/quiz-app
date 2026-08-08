@@ -32,9 +32,9 @@ export default function AdminDashboard() {
   const loadQuizzes = async (uid) => {
     setLoading(true);
     try {
-      console.log('Loading quizzes for uid:', uid);
+      
       const qs = await getAdminQuizzes(uid);
-      console.log('Quizzes found:', qs);
+     
       setQuizzes(qs);
     } catch (e) {
       console.error('Quiz load error:', e);

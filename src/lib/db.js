@@ -69,9 +69,6 @@ export async function deleteRoom(code) {
 /** Save a quiz (question set) to the quizzes collection */
 export async function saveQuiz(adminId, quizData) {
   try {
-    console.log("QUIZ DATA BEFORE SAVE:", quizData);
-    console.log(" SAVE QUIZ REAL DATA:", quizData);
-
     const quizRef = doc(collection(db, 'quizzes'));
 
     const quiz = {
@@ -82,11 +79,10 @@ export async function saveQuiz(adminId, quizData) {
 
     await setDoc(quizRef, quiz);
 
-    console.log("REAL QUIZ SAVED:", quizRef.id);
-
     return { id: quizRef.id, ...quiz };
   } catch (error) {
-    console.error("SAVE ERROR:", error);
+    console.error("Failed to save quiz:", error);
+    throw error;
   }
 }
 

@@ -58,41 +58,6 @@ quizblitz/
 
 ---
 
-## 🔧 Local Setup
-
-```bash
-git clone https://github.com/yourname/quizblitz.git
-cd kahoot-clone
-npm install
-cp .env.example .env.local
-```
-
-Fill in `.env.local` with your Firebase project values (get from Firebase Console → Project Settings → Your Apps).
-
-```env
-VITE_FIREBASE_API_KEY=...
-VITE_FIREBASE_AUTH_DOMAIN=...
-VITE_FIREBASE_PROJECT_ID=...
-VITE_FIREBASE_STORAGE_BUCKET=...
-VITE_FIREBASE_MESSAGING_SENDER_ID=...
-VITE_FIREBASE_APP_ID=...
-```
-
-Enable **Firestore** and **Email/Password Auth** in your Firebase Console, then run:
-
-```bash
-npm run dev
-```
-
----
-
-## 🌐 Deploy to Vercel
-
-1. Push code to GitHub
-2. Import repo at [vercel.com](https://vercel.com)
-3. Add all `VITE_FIREBASE_*` environment variables
-4. Click **Deploy**
-
 ---
 
 ## 🎮 How to Use
@@ -204,16 +169,6 @@ Points = 100 + 900 × (1 - elapsed/timeLimit)
 
 ---
 
-## 🎵 Sound Effects
-
-Built with Web Audio API — no external files required:
-
-- Join chime
-- Correct answer fanfare
-- Wrong answer buzz
-- Timeout sound
-- Countdown beeps
-- Victory melody
 
 ---
 
